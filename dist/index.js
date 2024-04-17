@@ -7,14 +7,16 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+import { platform } from "os";
 import { ChatOpenAI } from "@langchain/openai";
 import { ChatPromptTemplate } from "@langchain/core/prompts";
 import { systemPrompt, userPrompt } from "./prompts.js";
 import chalk from "chalk";
 import { exec } from "child_process";
-const { yellow, cyan } = chalk;
+const { yellow, cyan, red, blue } = chalk;
 const ARGS = {
-    question: 'List files in this directory'
+    origQuestion: '',
+    question: '',
 };
 const getCommands = (input) => __awaiter(void 0, void 0, void 0, function* () {
     const chatModel = new ChatOpenAI({
@@ -32,7 +34,13 @@ const getCommands = (input) => __awaiter(void 0, void 0, void 0, function* () {
 const processArgs = () => {
     // Read all files in the chapter directory
     const myos = process.platform;
-    ARGS.question = `My operating system is ${myos}. The time is ${new Date()}. And my question is: ${process.argv.slice(2).join(' ')}`;
+    const origQuestion = process.argv.slice(2).join(' ');
+    ARGS.origQuestion = origQuestion;
+    ARGS.question = [
+        `My operating system is ${myos}. `,
+        `The time is ${new Date()}. `,
+        `And my question is: ${origQuestion}`,
+    ].join('');
 };
 const getCommandByIndex = (commands, choice) => {
     const index = parseInt(choice);
@@ -44,10 +52,15 @@ const getCommandByIndex = (commands, choice) => {
 };
 const main = () => __awaiter(void 0, void 0, void 0, function* () {
     processArgs();
+    console.log(blue(`Question: ${ARGS.origQuestion}`));
+    process.stdout.write(blue('Thinking ... '));
+    const t1 = (new Date()).valueOf();
     const response = yield getCommands(ARGS.question);
+    const t2 = (new Date()).valueOf();
+    console.log(blue(`[${(t2 - t1) / 1000} s]`));
     // get the user to enter a question from the terminal
     const commands = response.split('===').map(x => x.trim()).filter(x => x);
-    console.log('Choose a command to run:');
+    console.log(yellow('Choose a command to run:'));
     commands.forEach((command, i) => {
         const cmd = command.split('\n').filter(x => x.trim());
         if (cmd.length > 1) {
@@ -65,26 +78,28 @@ const main = () => __awaiter(void 0, void 0, void 0, function* () {
         process.exit(1);
     }
     else {
+        const commonOpts = `[${cyan('Q')}uit/${cyan('C')}opy to clipboard]: `;
+        console.log(red(`WARNING: LLM's can hallucinate. Run at your own risk.`));
         if (commands.length === 1) {
-            console.log(yellow(`Type 'q' to quit, 'c' to copy or press ENTER to run the command:`));
+            process.stdout.write(yellow(commonOpts));
         }
         else {
-            console.log(yellow(`Pick a number between 1 and ${commands.length} or type 'q' to quit, or 'c' to copy to clipboard:`));
+            process.stdout.write(yellow(`Command ${cyan('#')} or ${commonOpts}`));
         }
     }
-    const choice = yield new Promise((resolve, reject) => {
+    const choice = yield new Promise(resolve => {
         process.stdin.resume();
         process.stdin.once('data', data => {
             const choice = data.toString().trim();
             resolve(choice);
         });
     });
-    if (choice === 'q') {
+    if (choice.toLowerCase() === 'q') {
         process.exit(0);
     }
     const command = getCommandByIndex(commands, choice);
-    if (choice === 'c') {
-        console.log(yellow('Enter the number of the command to copy to clipboard:'));
+    if (choice.toLowerCase() === 'c') {
+        process.stdout.write(yellow(`Command ${cyan('#')} to copy to clipboard: `));
         const choice = yield new Promise((resolve, reject) => {
             process.stdin.resume();
             process.stdin.once('data', data => {
@@ -93,7 +108,9 @@ const main = () => __awaiter(void 0, void 0, void 0, function* () {
             });
         });
         const commandToCopy = getCommandByIndex(commands, choice);
-        exec(`echo "${commandToCopy}" | pbcopy`, function (err, stdout, stderr) {
+        const sysCopyProg = platform() === 'darwin' ? 'pbcopy' : 'xclip';
+        console.log(`Copy command is ${sysCopyProg}`);
+        exec(`echo "${commandToCopy}" | ${sysCopyProg}`, function (err, stdout, stderr) {
             if (err) {
                 console.error(err);
             }
