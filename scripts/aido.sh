@@ -1,3 +1,4 @@
 #!/bin/bash
 #
-node dist/index.js "$@"
+# lets get this right
+node $(dirname "$0")/../lib/node_modules//aido/dist/index.js "$@"

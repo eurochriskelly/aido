@@ -1,6 +1,6 @@
 {
   "name": "aido",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "engines": {
     "node": ">=18"
   },
@@ -9,6 +9,7 @@
     "@langchain/community": "^0.0.44",
     "@langchain/core": "^0.1.54",
     "@langchain/openai": "^0.0.26",
+    "aido": "file:aido-0.0.5.tgz",
     "chalk": "^5.3.0",
     "langchain": "^0.1.31"
   },

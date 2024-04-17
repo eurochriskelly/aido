@@ -53,6 +53,10 @@ const getCommandByIndex = (commands: string[], choice: string): string => {
 }
 
 const main = async (): Promise<void> => {
+  console.log(red('-----'))
+  console.log(red(`WARNING: LLM's can hallucinate. Run at your own risk.`));
+  console.log(red('-----'))
+  console.log('')
   processArgs()
   console.log(blue(`Question: "${ARGS.origQuestion}"`));
   process.stdout.write(blue('Thinking ... '));
@@ -78,12 +82,12 @@ const main = async (): Promise<void> => {
     console.log('No commands found')
     process.exit(1)
   } else {
-    const commonOpts = `[${cyan('Q')}uit/${cyan('C')}lipboard]: `;
-    console.log(red(`WARNING: LLM's can hallucinate. Run at your own risk.`));
+    console.log('')
+    const commonOpts = `${cyan('Q')}uit/${cyan('C')}lipboard: `;
     if (commands.length === 1) {
       process.stdout.write(yellow(commonOpts));
     } else {
-      process.stdout.write(yellow(`Command ${cyan('#')} or ${commonOpts}`));
+      process.stdout.write(yellow(`Command ${cyan('#')} or [${commonOpts}]`));
     }
   }
   const choice = await new Promise<string>(resolve => {

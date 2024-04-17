@@ -51,6 +51,10 @@ const getCommandByIndex = (commands, choice) => {
     return commands[index - 1];
 };
 const main = () => __awaiter(void 0, void 0, void 0, function* () {
+    console.log(red('-----'));
+    console.log(red(`WARNING: LLM's can hallucinate. Run at your own risk.`));
+    console.log(red('-----'));
+    console.log('');
     processArgs();
     console.log(blue(`Question: "${ARGS.origQuestion}"`));
     process.stdout.write(blue('Thinking ... '));
@@ -78,13 +82,13 @@ const main = () => __awaiter(void 0, void 0, void 0, function* () {
         process.exit(1);
     }
     else {
-        const commonOpts = `[${cyan('Q')}uit/${cyan('C')}lipboard]: `;
-        console.log(red(`WARNING: LLM's can hallucinate. Run at your own risk.`));
+        console.log('');
+        const commonOpts = `${cyan('Q')}uit/${cyan('C')}lipboard: `;
         if (commands.length === 1) {
             process.stdout.write(yellow(commonOpts));
         }
         else {
-            process.stdout.write(yellow(`Command ${cyan('#')} or ${commonOpts}`));
+            process.stdout.write(yellow(`Command ${cyan('#')} or [${commonOpts}]`));
         }
     }
     const choice = yield new Promise(resolve => {
