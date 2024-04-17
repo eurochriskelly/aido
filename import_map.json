@@ -1,0 +1,7 @@
+{
+  "imports": {
+    "@langchain/openai": "./node_modules/@langchain/openai/index.js",
+    "langchain/vectorstores/memory": "./node_modules/langchain/vectorstores/memory.js",
+    "@langchain/core/prompts": "./node_modules/@langchain/core/prompts.js"
+  }
+}
