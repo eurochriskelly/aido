@@ -1,46 +1,59 @@
-Shell LM
-========
+# Johnny-McGory: Unleash Creative Writing
 
-Introduction
-------------
+## INT. FAMILY HOME - NIGHT
 
-Shell LM is a command-line tool that helps you find the right command to run based on a natural language description of what you want to do. It uses a language model to generate suggestions and presents them in an interactive menu for you to choose from.
+A cozy living room bathed in the soft glow of a night lamp. A YOUNG CHILD, eyes
+wide with anticipation, sits up in bed. Across, a PARENT, with a twinkle in
+their eye, holds a laptop branded with the logo "Johnny-McGory".
 
-Installation
-------------
+### CHILD
+(at a time way past their bedtime) You never told me a story :(
 
-To install Shell LM, you'll need to have Node.js installed on your system. Then, you can use npm to install the package globally:
-```
-npm install -g shell-lm
-```
-Usage
------
+### PARENT
+I have time for one quick story. Do you promise to sleep then?
 
-To use Shell LM, simply run the `shell-lm` (or `shllm`) command followed by a natural language description of what you want to do:
-```lua
-$ shel-lm "Get a list of kubernetes pods"
-Which command should I run?
-1. kubectl get pods
-2. kubectl get services
-3. kubectl describe pods
-Choose option:
-```
-Shell LM will present you with a list of suggested commands to run, and you can choose the one that best fits your needs.
+### CHILD
+I pwomise
 
-Customization
--------------
+### PARENT
+(smiling) Will I tell you the story of Johnny McGory?
 
-Shell LM uses a language model to generate suggestions, which means that it can be customized to work with different domains and use cases. To customize the language model, you'll need to provide a training dataset of natural language descriptions and corresponding commands.
+### CHILD
+(excitedly) Yes, please!
 
-To learn more about customizing Shell LM, see the documentation.
+### PARENT
+Will I begin it?
 
-Contributing
-------------
+### CHILD
+Oh, please do!
 
-Shell LM is an open-source project, and contributions are welcome! To learn more about how to contribute, see the CONTRIBUTING.md file.
+### PARENT
+That's all that's in it!
 
-License
--------
+### CHILD
+(laughing)
+Tell me a real story.
 
-Shell LM is licensed under the MIT License. See the LICENSE file for more information.ure, here's a sample README.md file that you can use as a starting point:
+### PARENT
+A promise is a promise. Get to sleep!
 
+## ABOUT JOHNNY-MCGORY
+
+Johnny-McGory is not just software; it's a journey into the heart of
+creativity. Inspired by a playful rhyme known to every young child in Ireland,
+it's designed to make the art of creative writing as delightful and engaging as
+the story that bears its name.
+
+### FEATURES
+
+- **Creative Prompts:** Spark imagination with unique story starters.
+- **Interactive Story Building:** Craft tales with guidance from Johnny McGory.
+- **Rhyme Time:** Explore the joy of rhyming to add a musical touch to stories.
+- **Parent-Child Collaboration:** Designed for parents and children to explore creative writing together.
+
+### GETTING STARTED
+
+```bash
+git clone https://github.com/yourgithub/johnny-mcgory.git
+cd johnny-mcgory
+# Follow setup instructions for installation
