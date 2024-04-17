@@ -1,7 +1,6 @@
 {
-  "name": "shel-lm",
-  "version": "0.0.0",
-  "private": true,
+  "name": "aido",
+  "version": "0.0.1",
   "engines": {
     "node": ">=18"
   },
@@ -14,7 +13,7 @@
     "langchain": "^0.1.31"
   },
   "bin": {
-    "shllm2": "bash ./scripts/shel-lm.sh"
+    "aido": "bash ./scripts/aido.sh"
   },
   "pnpm": {
     "overrides": {

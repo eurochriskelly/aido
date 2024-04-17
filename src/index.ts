@@ -1,5 +1,4 @@
-import { MemoryVectorStore } from "langchain/vectorstores/memory";
-import { OpenAIEmbeddings, ChatOpenAI } from "@langchain/openai";
+import { ChatOpenAI } from "@langchain/openai";
 import { ChatPromptTemplate } from "@langchain/core/prompts";
 import { systemPrompt, userPrompt } from "./prompts.js";
 import chalk from "chalk";
