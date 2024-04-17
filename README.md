@@ -1,59 +1,30 @@
-# Johnny-McGory: Unleash Creative Writing
+# AIDO
 
-## INT. FAMILY HOME - NIGHT
+`aido` (pronounced "I do") is an ai terminal command generation tool inspired
+by `sudo`. Just as `sudo` is short for "Super-user 'do'", `aido` comes from
+"Artifical Intelligence 'do'".
 
-A cozy living room bathed in the soft glow of a night lamp. A YOUNG CHILD, eyes
-wide with anticipation, sits up in bed. Across, a PARENT, with a twinkle in
-their eye, holds a laptop branded with the logo "Johnny-McGory".
+# installation
 
-### CHILD
-(at a time way past their bedtime) You never told me a story :(
+Simplest way to install is by running:
 
-### PARENT
-I have time for one quick story. Do you promise to sleep then?
+    npm install -g aido-shell
 
-### CHILD
-I pwomise
+Alternatively, clone this repo and run:
 
-### PARENT
-(smiling) Will I tell you the story of Johnny McGory?
+    npm pack
+    npm install -g aido-0.0.2.tgz
 
-### CHILD
-(excitedly) Yes, please!
+# Usage
 
-### PARENT
-Will I begin it?
+Usage is simple tell aido what you want to do. e.g.
 
-### CHILD
-Oh, please do!
+    aido "Log into a kubernetes pod whose name begins with 'abcd'"
 
-### PARENT
-That's all that's in it!
+`aido` will check your os version and find out which commands might be useful
+and provide a list of commands to run. Pick a number and press ENTER if you
+agree with one of the proposed options.
 
-### CHILD
-(laughing)
-Tell me a real story.
-
-### PARENT
-A promise is a promise. Get to sleep!
-
-## ABOUT JOHNNY-MCGORY
-
-Johnny-McGory is not just software; it's a journey into the heart of
-creativity. Inspired by a playful rhyme known to every young child in Ireland,
-it's designed to make the art of creative writing as delightful and engaging as
-the story that bears its name.
-
-### FEATURES
-
-- **Creative Prompts:** Spark imagination with unique story starters.
-- **Interactive Story Building:** Craft tales with guidance from Johnny McGory.
-- **Rhyme Time:** Explore the joy of rhyming to add a musical touch to stories.
-- **Parent-Child Collaboration:** Designed for parents and children to explore creative writing together.
-
-### GETTING STARTED
-
-```bash
-git clone https://github.com/yourgithub/johnny-mcgory.git
-cd johnny-mcgory
-# Follow setup instructions for installation
+*NOTE*: Aido depends on LLM's which sometimes hallucinate so make sure you
+actually understand what the offered command will do before accepting. The
+reponsibility for what you execute at the terminal is yours and yours alone.
