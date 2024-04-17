@@ -52,7 +52,7 @@ const getCommandByIndex = (commands, choice) => {
 };
 const main = () => __awaiter(void 0, void 0, void 0, function* () {
     processArgs();
-    console.log(blue(`Question: ${ARGS.origQuestion}`));
+    console.log(blue(`Question: "${ARGS.origQuestion}"`));
     process.stdout.write(blue('Thinking ... '));
     const t1 = (new Date()).valueOf();
     const response = yield getCommands(ARGS.question);
@@ -78,7 +78,7 @@ const main = () => __awaiter(void 0, void 0, void 0, function* () {
         process.exit(1);
     }
     else {
-        const commonOpts = `[${cyan('Q')}uit/${cyan('C')}opy to clipboard]: `;
+        const commonOpts = `[${cyan('Q')}uit/${cyan('C')}lipboard]: `;
         console.log(red(`WARNING: LLM's can hallucinate. Run at your own risk.`));
         if (commands.length === 1) {
             process.stdout.write(yellow(commonOpts));
@@ -98,15 +98,21 @@ const main = () => __awaiter(void 0, void 0, void 0, function* () {
         process.exit(0);
     }
     const command = getCommandByIndex(commands, choice);
-    if (choice.toLowerCase() === 'c') {
-        process.stdout.write(yellow(`Command ${cyan('#')} to copy to clipboard: `));
-        const choice = yield new Promise((resolve, reject) => {
-            process.stdin.resume();
-            process.stdin.once('data', data => {
-                const choice = data.toString().trim();
-                resolve(choice);
+    if (choice[0].toLowerCase() === 'c') {
+        // TODO: this isn't quite right. User should be able to type c1 or c 1 to copy first command
+        //       the number shoudl only be requested if omitted.
+        const restOfChoice = choice.replace(/c/, '').trim();
+        var index = restOfChoice;
+        if (!restOfChoice) {
+            process.stdout.write(yellow(`Command ${cyan('#')} to copy: `));
+            index = yield new Promise((resolve, reject) => {
+                process.stdin.resume();
+                process.stdin.once('data', data => {
+                    const choice = data.toString().trim();
+                    resolve(choice);
+                });
             });
-        });
+        }
         const commandToCopy = getCommandByIndex(commands, choice);
         const sysCopyProg = platform() === 'darwin' ? 'pbcopy' : 'xclip';
         console.log(`Copy command is ${sysCopyProg}`);
