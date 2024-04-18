@@ -41,4 +41,15 @@ export const systemPromptExplain = [
     'You will then provide a simple explanation of what the command does. ',
     'Explain what any flags, switches or options that were provided do in a table format. ',
 ].join('\n');
+export const systemPromptRefine = [
+    ...systemIdentity,
+    'You have provided the user with a command that you think will solve their problem. ',
+    'However, the user has some additional requirements that they need to be met. ',
+    'You will be asked to refine the command to meet the new requirements. ',
+    'You will be provided with the original command and the new requirements like this',
+    'Original question: ORIGINAL_QUESTION',
+    'Original command: ORIGINAL_COMMAND_PROVIDED BY YOU',
+    'New requirements: NEW_REQUIREMENTS',
+    'Return only the refined command with no additional comments or information. ',
+].join('\n');
 export const userPrompt = `{input}`;

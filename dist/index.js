@@ -57,7 +57,7 @@ const getCommandByIndex = (commands, choice) => {
         console.log('Invalid choice');
         process.exit(1);
     }
-    return commands[index - 1].command;
+    return commands[index - 1];
 };
 const hallucinateWarning = () => {
     console.log(red('-----'));
@@ -89,19 +89,20 @@ const readChar = () => {
 const displayCommand = (command) => __awaiter(void 0, void 0, void 0, function* () {
     console.log('');
     console.log(blue('Selected command:'));
-    console.log(`  ${cyan(':')} ${command}`);
+    console.log(`  ${cyan(':')} ${command.command}`);
     console.log(blue('Explanation: '));
-    // Much better would be to send 3 parallel requests to get the explanations so
-    // that they are ready when needed 
-    const response = yield getCommands('explain', [
-        `Hi Jeff, I asked you this question: `,
-        `Question: "${ARGS.question}"`,
-        `You provided me with this command.`,
-        `${command}`,
-        `Please explain what it does: `,
-        ''
-    ].join('\n'));
-    console.log(response.split('\n')
+    let exp = command === null || command === void 0 ? void 0 : command.explanation;
+    if (!exp) {
+        exp = yield getCommands('explain', [
+            `Hi Jeff, I asked you this question: `,
+            `Question: "${ARGS.question}"`,
+            `You provided me with this command.`,
+            `${command.command}`,
+            `Please explain what it does: `,
+            ''
+        ].join('\n'));
+    }
+    console.log(exp.split('\n')
         .filter(x => x.trim())
         .filter(x => x !== '===')
         .map(x => `  ${cyan(':')} ${x}`).join('\n'));
@@ -128,11 +129,7 @@ const copyToClipboard = (command) => __awaiter(void 0, void 0, void 0, function*
         });
     });
 });
-const main = () => __awaiter(void 0, void 0, void 0, function* () {
-    hallucinateWarning();
-    yield processArgs();
-    console.log(blue(`Question: "${ARGS.origQuestion}"`));
-    process.stdout.write(blue('Thinking ... '));
+const displayCommands = (question) => __awaiter(void 0, void 0, void 0, function* () {
     const t1 = (new Date()).valueOf();
     const response = yield getCommands('suggest', ARGS.question);
     const t2 = (new Date()).valueOf();
@@ -142,6 +139,18 @@ const main = () => __awaiter(void 0, void 0, void 0, function* () {
         command: c,
         explanation: null
     }));
+    // Go off and get the explanations for the commands
+    Promise.all(commands.map((command) => __awaiter(void 0, void 0, void 0, function* () {
+        const response = yield getCommands('explain', [
+            `Hi Jeff, I asked you this question: `,
+            `Question: "${ARGS.question}"`,
+            `You provided me with this command.`,
+            `${command.command}`,
+            `Please explain what it does: `,
+            ''
+        ].join('\n'));
+        command.explanation = response;
+    })));
     console.log(yellow('Choose a command to run:'));
     commands.forEach((command, i) => {
         const cmd = command.command.split('\n').filter(x => x.trim());
@@ -157,7 +166,7 @@ const main = () => __awaiter(void 0, void 0, void 0, function* () {
             });
         }
         else {
-            console.log(`  ${cyan(`${i + 1}:`)} ${command}`);
+            console.log(`  ${cyan(`${i + 1}:`)} ${cmd}`);
         }
     });
     if (commands.length === 0) {
@@ -168,14 +177,23 @@ const main = () => __awaiter(void 0, void 0, void 0, function* () {
         console.log('');
         process.stdout.write(yellow(`Command ${cyan('#')}: `));
     }
+    return commands;
+});
+const goodBye = () => {
+    console.log('');
+    console.log(blue('Goodbye!'));
+    process.exit(0);
+};
+const main = () => __awaiter(void 0, void 0, void 0, function* () {
+    hallucinateWarning();
+    yield processArgs();
+    console.log(blue(`Question: "${ARGS.origQuestion}"`));
+    process.stdout.write(blue('Thinking ... '));
+    const commands = yield displayCommands(ARGS.question);
     // get the user to provide a single char and then proceed. Do not wait for confirmation
-    // Equivalent to `read -n 1 x` in bash
     const choice = yield readChar();
-    if (choice.toLowerCase() === 'q') {
-        console.log('');
-        console.log(blue('Goodbye!'));
-        process.exit(0);
-    }
+    if (choice.toLowerCase() === 'q')
+        goodBye();
     const command = getCommandByIndex(commands, choice);
     // await copyToClipboard(command)
     const operation = yield displayCommand(command);
@@ -183,7 +201,7 @@ const main = () => __awaiter(void 0, void 0, void 0, function* () {
         case 'r':
             {
                 console.log(blue('Running command ...'));
-                exec(command, function (err, stdout, stderr) {
+                exec(command.command, function (err, stdout, stderr) {
                     if (err) {
                         console.error(err);
                     }
@@ -200,11 +218,8 @@ const main = () => __awaiter(void 0, void 0, void 0, function* () {
             }
             break;
         case 'q':
-            {
-                console.log('');
-                console.log(blue('Goodbye!'));
-                process.exit(0);
-            }
+            goodBye();
+            break;
         default:
             break;
     }

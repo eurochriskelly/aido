@@ -60,13 +60,13 @@ const processArgs = async () => {
 }
 
 
-const getCommandByIndex = (commands: Command[], choice: string): string => {
+const getCommandByIndex = (commands: Command[], choice: string): Command => {
   const index = parseInt(choice)
   if (index > commands.length) {
     console.log('Invalid choice')
     process.exit(1)
   }
-  return commands[index - 1].command
+  return commands[index - 1]
 }
 
 const hallucinateWarning = () => {
@@ -100,22 +100,23 @@ const readChar = (): Promise<string> => {
   });
 };
 
-const displayCommand = async (command: string): Promise<string> => {
+const displayCommand = async (command: Command): Promise<string> => {
   console.log('')
   console.log(blue('Selected command:'))
-  console.log(`  ${cyan(':')} ${command}`)
+  console.log(`  ${cyan(':')} ${command.command}`)
   console.log(blue('Explanation: '))
-  // Much better would be to send 3 parallel requests to get the explanations so
-  // that they are ready when needed 
-  const response = await getCommands('explain', [
-    `Hi Jeff, I asked you this question: `,
-    `Question: "${ARGS.question}"`,
-    `You provided me with this command.`,
-    `${command}`,
-    `Please explain what it does: `,
-    ''
-  ].join('\n'));
-  console.log(response.split('\n')
+  let exp = command?.explanation
+  if  (!exp) {
+    exp = await getCommands('explain', [
+      `Hi Jeff, I asked you this question: `,
+      `Question: "${ARGS.question}"`,
+      `You provided me with this command.`,
+      `${command.command}`,
+      `Please explain what it does: `,
+      ''
+    ].join('\n'));
+  }
+  console.log(exp.split('\n')
     .filter(x => x.trim())
     .filter(x => x !== '===')
     .map(x => `  ${cyan(':')} ${x}`).join('\n'))
@@ -143,11 +144,8 @@ const copyToClipboard = async (command: string): Promise<void> => {
   });
 }
 
-const main = async (): Promise<void> => {
-  hallucinateWarning();
-  await processArgs();
-  console.log(blue(`Question: "${ARGS.origQuestion}"`));
-  process.stdout.write(blue('Thinking ... '));
+const displayCommands = async (question: string): Promise<Command[]> => {
+
   const t1 = (new Date()).valueOf();
   const response = await getCommands('suggest', ARGS.question);
   const t2 = (new Date()).valueOf();
@@ -156,6 +154,18 @@ const main = async (): Promise<void> => {
   const commands: Command[] = response.split('===').map(x => x.trim()).filter(x => x).map(c => ({
     command: c,
     explanation: null
+  }))
+  // Go off and get the explanations for the commands
+  Promise.all(commands.map(async command => {
+    const response = await getCommands('explain', [
+      `Hi Jeff, I asked you this question: `,
+      `Question: "${ARGS.question}"`,
+      `You provided me with this command.`,
+      `${command.command}`,
+      `Please explain what it does: `,
+      ''
+    ].join('\n'));
+    command.explanation = response
   }))
   console.log(yellow('Choose a command to run:'))
   commands.forEach((command, i) => {
@@ -170,7 +180,7 @@ const main = async (): Promise<void> => {
         }
       })
     } else {
-      console.log(`  ${cyan(`${i + 1}:`)} ${command}`)
+      console.log(`  ${cyan(`${i + 1}:`)} ${cmd}`)
     }
   })
   if (commands.length === 0) {
@@ -180,15 +190,25 @@ const main = async (): Promise<void> => {
     console.log('')
     process.stdout.write(yellow(`Command ${cyan('#')}: `));
   }
-  // get the user to provide a single char and then proceed. Do not wait for confirmation
-  // Equivalent to `read -n 1 x` in bash
-  const choice = await readChar();
+  return commands 
+}
 
-  if (choice.toLowerCase() === 'q') {
-    console.log('')
-    console.log(blue('Goodbye!'))
-    process.exit(0)
-  }
+const goodBye = () => { 
+  console.log('')
+  console.log(blue('Goodbye!'))
+  process.exit(0)
+}
+
+const main = async (): Promise<void> => {
+  hallucinateWarning();
+  await processArgs();
+  console.log(blue(`Question: "${ARGS.origQuestion}"`));
+  process.stdout.write(blue('Thinking ... '));
+
+  const commands = await displayCommands(ARGS.question)
+  // get the user to provide a single char and then proceed. Do not wait for confirmation
+  const choice = await readChar();
+  if (choice.toLowerCase() === 'q') goodBye() 
   const command = getCommandByIndex(commands, choice)
 
   // await copyToClipboard(command)
@@ -197,7 +217,7 @@ const main = async (): Promise<void> => {
     case 'r':
       {
         console.log(blue('Running command ...'))
-        exec(command, function (err: any, stdout: any, stderr: any) {
+        exec(command.command, function (err: any, stdout: any, stderr: any) {
           if (err) {
             console.error(err)
           }
@@ -214,11 +234,8 @@ const main = async (): Promise<void> => {
       }
       break
     case 'q':
-      {
-        console.log('')
-        console.log(blue('Goodbye!'))
-        process.exit(0)
-      }
+      goodBye()
+      break
     default:
       break;
   }
