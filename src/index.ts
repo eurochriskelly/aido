@@ -5,6 +5,7 @@ import { ChatPromptTemplate } from "@langchain/core/prompts";
 import { systemPromptSuggest, systemPromptExplain, userPrompt } from "./prompts.js";
 import chalk from "chalk";
 import { exec } from "child_process";
+import { exit } from "process";
 
 const { yellow, cyan, red, blue } = chalk
 
@@ -60,7 +61,12 @@ const processArgs = async () => {
 }
 
 
-const getCommandByIndex = (commands: Command[], choice: string): Command => {
+const getCommandByIndex = (commands: Command[], choice: string): (Command | string) => {
+  // If choice is numeric, return commands[+choice - 1]
+  // If choice is a letter, return that letter
+  if (isNaN(parseInt(choice))) {
+    return choice;
+  }
   const index = parseInt(choice)
   if (index > commands.length) {
     console.log('Invalid choice')
@@ -100,7 +106,7 @@ const readChar = (): Promise<string> => {
   });
 };
 
-const displayCommand = async (command: Command): Promise<string> => {
+const explainCommand = async (command: Command): Promise<string> => {
   console.log('')
   console.log(blue('Selected command:'))
   console.log(`  ${cyan(':')} ${command.command}`)
@@ -120,11 +126,7 @@ const displayCommand = async (command: Command): Promise<string> => {
     .filter(x => x.trim())
     .filter(x => x !== '===')
     .map(x => `  ${cyan(':')} ${x}`).join('\n'))
-
-  const commonOpts = `${cyan('Q')}uit/${cyan('R')}un/${cyan('E')}dit`;
-  process.stdout.write(yellow('How would you like to proceed? ' + commonOpts + ': '));
-  const choice = await readChar();
-  return choice
+  return 'x'
 }
 
 const copyToClipboard = async (command: string): Promise<void> => {
@@ -144,8 +146,8 @@ const copyToClipboard = async (command: string): Promise<void> => {
   });
 }
 
-const displayCommands = async (question: string): Promise<Command[]> => {
-
+const showCommands = async (question: string): Promise<Command[]> => {
+  let currOperation = 'run'
   const t1 = (new Date()).valueOf();
   const response = await getCommands('suggest', ARGS.question);
   const t2 = (new Date()).valueOf();
@@ -184,11 +186,19 @@ const displayCommands = async (question: string): Promise<Command[]> => {
     }
   })
   if (commands.length === 0) {
-    console.log('No commands found')
+    console.log('No suggestion?! ')
     process.exit(1)
   } else {
     console.log('')
-    process.stdout.write(yellow(`Command ${cyan('#')}: `));
+    const makeOpt = (label: string) => {
+      // make label yellow with any uppercase letters cyan
+      return label.split('').map((x: string) => x === x.toUpperCase() ? cyan(x) : x).join('')
+    } 
+    const opts = ['eXplain', 'Run', 'Edit', 'Quit']
+      .filter((x: string) => x.toLowerCase() !== currOperation)
+      .map(makeOpt)
+      .join('/')
+    process.stdout.write(yellow(`[${opts}] Command to ${blue(currOperation)} ${cyan('#')}: `));
   }
   return commands 
 }
@@ -200,44 +210,56 @@ const goodBye = () => {
 }
 
 const main = async (): Promise<void> => {
-  hallucinateWarning();
+  // hallucinateWarning();
   await processArgs();
-  console.log(blue(`Question: "${ARGS.origQuestion}"`));
+  console.log(blue(`... Question: "${ARGS.origQuestion}"`));
   process.stdout.write(blue('Thinking ... '));
 
-  const commands = await displayCommands(ARGS.question)
+  const commands = await showCommands(ARGS.question)
   // get the user to provide a single char and then proceed. Do not wait for confirmation
   const choice = await readChar();
-  if (choice.toLowerCase() === 'q') goodBye() 
+  if (choice.toLowerCase() === 'q') goodBye()
   const command = getCommandByIndex(commands, choice)
 
   // await copyToClipboard(command)
-  const operation = await displayCommand(command)
-  switch (operation.toLowerCase()) {
-    case 'r':
-      {
-        console.log(blue('Running command ...'))
-        exec(command.command, function (err: any, stdout: any, stderr: any) {
-          if (err) {
-            console.error(err)
-          }
-          console.log(stdout)
-          console.error(stderr)
+  let operation = ''
+  if (typeof command !== 'string') {
+    // operation = await explainCommand(command)
+    console.log('operation xxx', operation, typeof command)
+  } else {
+    console.log(command);
+    switch (operation.toLowerCase()) {
+      case 'r':
+        {
+          console.log(blue('Running command ...'))
+          exec(command.command, function (err: any, stdout: any, stderr: any) {
+            if (err) {
+              console.error(err)
+            }
+            console.log(stdout)
+            console.error(stderr)
+            process.exit(0)
+          });
+        }
+        break;
+      case 'x': // Explain
+        {
+          // todo: wait until command is ready
+          explainCommand(command)
+        }
+        break
+      case 'e':
+        {
+          console.log('Editing not yet supported')
           process.exit(0)
-        });
-      }
-      break;
-    case 'e':
-      {
-        console.log('Editing not yet supported')
-        process.exit(0)
-      }
-      break
-    case 'q':
-      goodBye()
-      break
-    default:
-      break;
+        }
+        break
+      case 'q':
+        goodBye()
+        break
+      default:
+        break;
+    }
   }
 };
 

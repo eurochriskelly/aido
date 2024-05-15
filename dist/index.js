@@ -52,6 +52,11 @@ const processArgs = () => __awaiter(void 0, void 0, void 0, function* () {
     ].join('');
 });
 const getCommandByIndex = (commands, choice) => {
+    // If choice is numeric, return commands[+choice - 1]
+    // If choice is a letter, return that letter
+    if (isNaN(parseInt(choice))) {
+        return choice;
+    }
     const index = parseInt(choice);
     if (index > commands.length) {
         console.log('Invalid choice');
@@ -86,7 +91,7 @@ const readChar = () => {
         process.stdin.resume(); // Ensure stdin is in a listening state
     });
 };
-const displayCommand = (command) => __awaiter(void 0, void 0, void 0, function* () {
+const explainCommand = (command) => __awaiter(void 0, void 0, void 0, function* () {
     console.log('');
     console.log(blue('Selected command:'));
     console.log(`  ${cyan(':')} ${command.command}`);
@@ -106,10 +111,7 @@ const displayCommand = (command) => __awaiter(void 0, void 0, void 0, function* 
         .filter(x => x.trim())
         .filter(x => x !== '===')
         .map(x => `  ${cyan(':')} ${x}`).join('\n'));
-    const commonOpts = `${cyan('Q')}uit/${cyan('R')}un/${cyan('E')}dit`;
-    process.stdout.write(yellow('How would you like to proceed? ' + commonOpts + ': '));
-    const choice = yield readChar();
-    return choice;
+    return 'x';
 });
 const copyToClipboard = (command) => __awaiter(void 0, void 0, void 0, function* () {
     const sysCopyProg = platform() === 'darwin' ? 'pbcopy' : (platform() === 'linux' ? 'xclip -selection clipboard' : undefined);
@@ -129,7 +131,8 @@ const copyToClipboard = (command) => __awaiter(void 0, void 0, void 0, function*
         });
     });
 });
-const displayCommands = (question) => __awaiter(void 0, void 0, void 0, function* () {
+const showCommands = (question) => __awaiter(void 0, void 0, void 0, function* () {
+    let currOperation = 'run';
     const t1 = (new Date()).valueOf();
     const response = yield getCommands('suggest', ARGS.question);
     const t2 = (new Date()).valueOf();
@@ -170,12 +173,20 @@ const displayCommands = (question) => __awaiter(void 0, void 0, void 0, function
         }
     });
     if (commands.length === 0) {
-        console.log('No commands found');
+        console.log('No suggestion?! ');
         process.exit(1);
     }
     else {
         console.log('');
-        process.stdout.write(yellow(`Command ${cyan('#')}: `));
+        const makeOpt = (label) => {
+            // make label yellow with any uppercase letters cyan
+            return label.split('').map((x) => x === x.toUpperCase() ? cyan(x) : x).join('');
+        };
+        const opts = ['eXplain', 'Run', 'Edit', 'Quit']
+            .filter((x) => x.toLowerCase() !== currOperation)
+            .map(makeOpt)
+            .join('/');
+        process.stdout.write(yellow(`[${opts}] Command to ${blue(currOperation)} ${cyan('#')}: `));
     }
     return commands;
 });
@@ -185,43 +196,56 @@ const goodBye = () => {
     process.exit(0);
 };
 const main = () => __awaiter(void 0, void 0, void 0, function* () {
-    hallucinateWarning();
+    // hallucinateWarning();
     yield processArgs();
-    console.log(blue(`Question: "${ARGS.origQuestion}"`));
+    console.log(blue(`... Question: "${ARGS.origQuestion}"`));
     process.stdout.write(blue('Thinking ... '));
-    const commands = yield displayCommands(ARGS.question);
+    const commands = yield showCommands(ARGS.question);
     // get the user to provide a single char and then proceed. Do not wait for confirmation
     const choice = yield readChar();
     if (choice.toLowerCase() === 'q')
         goodBye();
     const command = getCommandByIndex(commands, choice);
     // await copyToClipboard(command)
-    const operation = yield displayCommand(command);
-    switch (operation.toLowerCase()) {
-        case 'r':
-            {
-                console.log(blue('Running command ...'));
-                exec(command.command, function (err, stdout, stderr) {
-                    if (err) {
-                        console.error(err);
-                    }
-                    console.log(stdout);
-                    console.error(stderr);
+    let operation = '';
+    if (typeof command !== 'string') {
+        // operation = await explainCommand(command)
+        console.log('operation xxx', operation, typeof command);
+    }
+    else {
+        console.log(command);
+        switch (operation.toLowerCase()) {
+            case 'r':
+                {
+                    console.log(blue('Running command ...'));
+                    exec(command.command, function (err, stdout, stderr) {
+                        if (err) {
+                            console.error(err);
+                        }
+                        console.log(stdout);
+                        console.error(stderr);
+                        process.exit(0);
+                    });
+                }
+                break;
+            case 'x': // Explain
+                {
+                    // todo: wait until command is ready
+                    explainCommand(command);
+                }
+                break;
+            case 'e':
+                {
+                    console.log('Editing not yet supported');
                     process.exit(0);
-                });
-            }
-            break;
-        case 'e':
-            {
-                console.log('Editing not yet supported');
-                process.exit(0);
-            }
-            break;
-        case 'q':
-            goodBye();
-            break;
-        default:
-            break;
+                }
+                break;
+            case 'q':
+                goodBye();
+                break;
+            default:
+                break;
+        }
     }
 });
 main();
