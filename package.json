@@ -21,7 +21,7 @@
     }
   },
   "scripts": {
-    "build": "tsc",
+    "build": "tsc;npm install -g .",
     "watch": "tsc --watch",
     "test": "tsc;node dist/index.js"
   },
