@@ -9,29 +9,14 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 import { platform } from "os";
 import * as readline from 'readline';
-import { ChatOpenAI } from "@langchain/openai";
-import { ChatPromptTemplate } from "@langchain/core/prompts";
-import { systemPromptSuggest, systemPromptExplain, userPrompt } from "./prompts.js";
 import chalk from "chalk";
 import { exec } from "child_process";
+import { getCommands, getCommandByIndex, showCommands } from "./commands.js";
 const { yellow, cyan, red, blue } = chalk;
 const ARGS = {
     origQuestion: '',
     question: '',
 };
-const getCommands = (type, input) => __awaiter(void 0, void 0, void 0, function* () {
-    const chatModel = new ChatOpenAI({
-    // openAIApiKey: process.env.OPENAI_API_KEY as string, // Cast to string; TypeScript won't automatically infer process.env types.
-    });
-    const prompt = ChatPromptTemplate.fromMessages([
-        ['system', type === 'suggest' ? systemPromptSuggest : systemPromptExplain],
-        ['user', userPrompt],
-    ]);
-    const chain = prompt.pipe(chatModel);
-    const response = yield chain.invoke({ input });
-    // const response: any = await chain.invoke({ content: 'what is the ram on this pc?' })
-    return response.content;
-});
 const processArgs = () => __awaiter(void 0, void 0, void 0, function* () {
     // Read all files in the chapter directory
     const myos = process.platform;
@@ -51,25 +36,6 @@ const processArgs = () => __awaiter(void 0, void 0, void 0, function* () {
         `And my question is: ${origQuestion}`,
     ].join('');
 });
-const getCommandByIndex = (commands, choice) => {
-    // If choice is numeric, return commands[+choice - 1]
-    // If choice is a letter, return that letter
-    if (isNaN(parseInt(choice))) {
-        return choice;
-    }
-    const index = parseInt(choice);
-    if (index > commands.length) {
-        console.log('Invalid choice');
-        process.exit(1);
-    }
-    return commands[index - 1];
-};
-const hallucinateWarning = () => {
-    console.log(red('-----'));
-    console.log(red(`WARNING: LLM's can hallucinate. Run at your own risk.`));
-    console.log(red('-----'));
-    console.log('');
-};
 const readChar = () => {
     return new Promise((resolve, reject) => {
         readline.emitKeypressEvents(process.stdin);
@@ -107,10 +73,7 @@ const explainCommand = (command) => __awaiter(void 0, void 0, void 0, function* 
             ''
         ].join('\n'));
     }
-    console.log(exp.split('\n')
-        .filter(x => x.trim())
-        .filter(x => x !== '===')
-        .map(x => `  ${cyan(':')} ${x}`).join('\n'));
+    console.log(exp === null || exp === void 0 ? void 0 : exp.split('\n').filter(x => x.trim()).filter(x => x !== '===').map(x => `  ${cyan(':')} ${x}`).join('\n'));
     return 'x';
 });
 const copyToClipboard = (command) => __awaiter(void 0, void 0, void 0, function* () {
@@ -131,65 +94,6 @@ const copyToClipboard = (command) => __awaiter(void 0, void 0, void 0, function*
         });
     });
 });
-const showCommands = (question) => __awaiter(void 0, void 0, void 0, function* () {
-    let currOperation = 'run';
-    const t1 = (new Date()).valueOf();
-    const response = yield getCommands('suggest', ARGS.question);
-    const t2 = (new Date()).valueOf();
-    console.log(blue(`[${(t2 - t1) / 1000} s]`));
-    // get the user to enter a question from the terminal
-    const commands = response.split('===').map(x => x.trim()).filter(x => x).map(c => ({
-        command: c,
-        explanation: null
-    }));
-    // Go off and get the explanations for the commands
-    Promise.all(commands.map((command) => __awaiter(void 0, void 0, void 0, function* () {
-        const response = yield getCommands('explain', [
-            `Hi Jeff, I asked you this question: `,
-            `Question: "${ARGS.question}"`,
-            `You provided me with this command.`,
-            `${command.command}`,
-            `Please explain what it does: `,
-            ''
-        ].join('\n'));
-        command.explanation = response;
-    })));
-    console.log(yellow('Choose a command to run:'));
-    commands.forEach((command, i) => {
-        const cmd = command.command.split('\n').filter(x => x.trim());
-        if (cmd.length > 1) {
-            console.log(`  ${cyan(`${i + 1}:`)}`);
-            cmd.forEach((line, i) => {
-                if (i === 0) {
-                    console.log(`   ${cyan(':')} ${line}`);
-                }
-                else {
-                    console.log(`   ${cyan(':')} ${line}`);
-                }
-            });
-        }
-        else {
-            console.log(`  ${cyan(`${i + 1}:`)} ${cmd}`);
-        }
-    });
-    if (commands.length === 0) {
-        console.log('No suggestion?! ');
-        process.exit(1);
-    }
-    else {
-        console.log('');
-        const makeOpt = (label) => {
-            // make label yellow with any uppercase letters cyan
-            return label.split('').map((x) => x === x.toUpperCase() ? cyan(x) : x).join('');
-        };
-        const opts = ['eXplain', 'Run', 'Edit', 'Quit']
-            .filter((x) => x.toLowerCase() !== currOperation)
-            .map(makeOpt)
-            .join('/');
-        process.stdout.write(yellow(`[${opts}] Command to ${blue(currOperation)} ${cyan('#')}: `));
-    }
-    return commands;
-});
 const goodBye = () => {
     console.log('');
     console.log(blue('Goodbye!'));
@@ -198,7 +102,7 @@ const goodBye = () => {
 const main = () => __awaiter(void 0, void 0, void 0, function* () {
     // hallucinateWarning();
     yield processArgs();
-    console.log(blue(`... Question: "${ARGS.origQuestion}"`));
+    console.log(blue(`Question: "${ARGS.origQuestion}"`));
     process.stdout.write(blue('Thinking ... '));
     const commands = yield showCommands(ARGS.question);
     // get the user to provide a single char and then proceed. Do not wait for confirmation
@@ -208,24 +112,21 @@ const main = () => __awaiter(void 0, void 0, void 0, function* () {
     const command = getCommandByIndex(commands, choice);
     // await copyToClipboard(command)
     let operation = '';
-    if (typeof command !== 'string') {
+    if (command.index) {
         // operation = await explainCommand(command)
-        console.log('operation xxx', operation, typeof command);
+        exec(command.command, function (err, stdout, stderr) {
+            if (err)
+                console.error(err);
+            console.log(stdout);
+            console.error(stderr);
+            process.exit(0);
+        });
     }
     else {
-        console.log(command);
         switch (operation.toLowerCase()) {
             case 'r':
                 {
                     console.log(blue('Running command ...'));
-                    exec(command.command, function (err, stdout, stderr) {
-                        if (err) {
-                            console.error(err);
-                        }
-                        console.log(stdout);
-                        console.error(stderr);
-                        process.exit(0);
-                    });
                 }
                 break;
             case 'x': // Explain
@@ -244,6 +145,7 @@ const main = () => __awaiter(void 0, void 0, void 0, function* () {
                 goodBye();
                 break;
             default:
+                console.log('Invalid choice. ', operation.toLowerCase());
                 break;
         }
     }
