@@ -10,7 +10,8 @@ export interface Command {
   abbrev: string
   command: string | null
   explanation: string | null
-  index?: number
+  index?: number,
+  annotation?: string
 }
 
 
@@ -27,7 +28,6 @@ export const getCommands = async (type: string, input: string): Promise<string> 
   // const response: any = await chain.invoke({ content: 'what is the ram on this pc?' })
   return response.content
 }
-
 
 export const getCommandByIndex = (commands: Command[], choice: string): Command => {
   const types: any = {
@@ -47,7 +47,8 @@ export const getCommandByIndex = (commands: Command[], choice: string): Command 
         abbrev: 'x',
         command: commands[parseInt(choice) - 1].command,
         explanation: commands[parseInt(choice) - 1].explanation,
-        index: parseInt(choice)
+        index: parseInt(choice),
+        annotation: 'loop 1'
       };
     } else {
       console.log('Invalid choice [' + choice + ']!');
@@ -60,7 +61,8 @@ export const getCommandByIndex = (commands: Command[], choice: string): Command 
     abbrev: choice,
     command: commands[parseInt(choice) - 1].command,
     explanation: commands[parseInt(choice) - 1].explanation,
-    index: 0
+    index: 0,
+    annotation: 'loop 2'
   };
 }
 
@@ -72,8 +74,10 @@ export const showCommands = async (question: string): Promise<Command[]> => {
   console.log(blue(`[${(t2 - t1) / 1000} s]`));
   // get the user to enter a question from the terminal
   const commands: Command[] = response.split('===').map(x => x.trim()).filter(x => x).map(c => ({
+    type: 'execute',
+    abbrev: '',
     command: c,
-    explanation: null
+    explanation: null,
   }))
   // Go off and get the explanations for the commands
   Promise.all(commands.map(async command => {
@@ -89,7 +93,7 @@ export const showCommands = async (question: string): Promise<Command[]> => {
   }))
   console.log(yellow('Proposed solutions:'))
   commands.forEach((command, i) => {
-    const cmd = command.command.split('\n').filter(x => x.trim())
+    const cmd = command.command?.split('\n').filter(x => x.trim()) || []
     if (cmd.length > 1) {
       console.log(`  ${cyan(`${i + 1}:`)}`)
       cmd.forEach((line, i) => {
@@ -116,7 +120,7 @@ export const showCommands = async (question: string): Promise<Command[]> => {
       .filter((x: string) => x.toLowerCase() !== currOperation)
       .map(makeOpt)
       .join('/')
-    process.stdout.write(yellow(`[${opts}] Command to ${cyan(currOperation.toUpperCase())} ${yellow('#')}: `));
+    process.stdout.write(yellow(`Enter ${cyan('command #')} to ${cyan(currOperation.toUpperCase())} or [${opts}]: `));
   }
   return commands 
 }

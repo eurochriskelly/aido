@@ -80,7 +80,6 @@ const copyToClipboard = async (command: string): Promise<void> => {
 }
 
 const goodBye = () => {
-  console.log('')
   console.log(blue('Goodbye!'))
   process.exit(0)
 }
@@ -99,11 +98,11 @@ const main = async (): Promise<void> => {
 
   if (choice.toLowerCase() === 'q') goodBye();
   
-  const command = getCommandByIndex(commands, choice)
+  const command: Command = getCommandByIndex(commands, choice)
 
   // await copyToClipboard(command)
   let operation = ''
-  if (command.index) {
+  if (command.index && command.command) {
     // operation = await explainCommand(command)
     exec(command.command, function (err: any, stdout: any, stderr: any) {
       if (err) console.error(err)
