@@ -5,8 +5,11 @@ import chalk from "chalk";
 const { yellow, cyan, red, blue } = chalk
 
 export interface Command {
-  command: string
-  explanation: string | null 
+  // enum: ['execute', 'edit', 'quit']
+  type: string
+  abbrev: string
+  command: string | null
+  explanation: string | null
   index?: number
 }
 
@@ -27,23 +30,39 @@ export const getCommands = async (type: string, input: string): Promise<string> 
 
 
 export const getCommandByIndex = (commands: Command[], choice: string): Command => {
+  const types: any = {
+    'x': 'eXplain',
+    't': 'reTry',
+    'e': 'Edit',
+    'r': 'Run',
+    's': 'Save',
+    'q': 'Quit'
+  }
   // If choice is numeric, return commands[+choice - 1]
-  // If choice is a letter, return that letter
-  if (!isNaN(parseInt(choice))) {
-    return {
-      command: 'execute',
-      explanation: null,
-      index: parseInt(choice)
-    };
+  const numChoice = parseInt(choice);
+  if (!isNaN(numChoice) ) {
+    if (numChoice <= commands.length) {
+      return {
+        type: 'execute',
+        abbrev: 'x',
+        command: commands[parseInt(choice) - 1].command,
+        explanation: commands[parseInt(choice) - 1].explanation,
+        index: parseInt(choice)
+      };
+    } else {
+      console.log('Invalid choice [' + choice + ']!');
+      process.exit(1)
+    }
   }
-  const index = parseInt(choice)
-  if (index > commands.length) {
-    console.log('Invalid choice')
-    process.exit(1)
-  }
-  return commands[index - 1]
-}
 
+  return {
+    type: types[choice],
+    abbrev: choice,
+    command: commands[parseInt(choice) - 1].command,
+    explanation: commands[parseInt(choice) - 1].explanation,
+    index: 0
+  };
+}
 
 export const showCommands = async (question: string): Promise<Command[]> => {
   let currOperation = 'run'
@@ -88,16 +107,18 @@ export const showCommands = async (question: string): Promise<Command[]> => {
     console.log('No suggestion?! ')
     process.exit(1)
   } else {
-    console.log('')
+    console.log('');
     const makeOpt = (label: string) => {
       // make label yellow with any uppercase letters cyan
       return label.split('').map((x: string) => x === x.toUpperCase() ? cyan(x) : x).join('')
     } 
-    const opts = ['eXplain', 'Run', 'Edit', 'Quit']
+    const opts = ['eXplain', 'Run', 'Save', 'Edit','reTry', 'Quit']
       .filter((x: string) => x.toLowerCase() !== currOperation)
       .map(makeOpt)
       .join('/')
-    process.stdout.write(yellow(`[${opts}] Command to ${blue(currOperation)} ${cyan('#')}: `));
+    process.stdout.write(yellow(`[${opts}] Command to ${cyan(currOperation.toUpperCase())} ${yellow('#')}: `));
   }
   return commands 
 }
+
+

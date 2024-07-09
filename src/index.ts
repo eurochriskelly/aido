@@ -1,8 +1,7 @@
 import { platform } from "os";
-import * as readline from 'readline';
 import chalk from "chalk";
 import { exec } from "child_process";
-import { exit } from "process";
+import { readChar } from "./utils.js";
 import { Command, getCommands, getCommandByIndex, showCommands } from "./commands.js";
 
 const { yellow, cyan, red, blue } = chalk
@@ -23,7 +22,7 @@ const processArgs = async () => {
   let origQuestion = process.argv.slice(2).join(' ')
   if (!origQuestion.trim()) {
     // Ask the user what they want
-    process.stdout.write(yellow('What can I do for you ? '));
+    process.stdout.write(yellow('How may I assist ? '));
     origQuestion = await new Promise<string>(resolve => {
       process.stdin.resume();
       process.stdin.once('data', data =>
@@ -39,29 +38,6 @@ const processArgs = async () => {
   ].join('')
 }
 
-const readChar = (): Promise<string> => {
-  return new Promise((resolve, reject) => {
-    readline.emitKeypressEvents(process.stdin);
-    if (process.stdin.isTTY) {
-      process.stdin.setRawMode(true);
-    }
-    const handler = (chunk: any, key: any) => {
-      if (process.stdin.isTTY) {
-        process.stdin.setRawMode(false);
-      }
-      process.stdin.pause();
-      process.stdin.removeListener('keypress', handler); // Clean up the listener
-      resolve(key.sequence);
-    };
-
-    process.stdin.on('keypress', handler);
-    process.stdin.on('error', (err) => {
-      reject(err);
-    });
-
-    process.stdin.resume(); // Ensure stdin is in a listening state
-  });
-};
 
 const explainCommand = async (command: Command): Promise<string> => {
   console.log('')
@@ -116,9 +92,13 @@ const main = async (): Promise<void> => {
   process.stdout.write(blue('Thinking ... '));
 
   const commands = await showCommands(ARGS.question)
+
   // get the user to provide a single char and then proceed. Do not wait for confirmation
   const choice = await readChar();
-  if (choice.toLowerCase() === 'q') goodBye()
+  console.log(choice); // echo choice so user sees that they typed
+
+  if (choice.toLowerCase() === 'q') goodBye();
+  
   const command = getCommandByIndex(commands, choice)
 
   // await copyToClipboard(command)
