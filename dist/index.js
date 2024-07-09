@@ -74,7 +74,6 @@ const copyToClipboard = (command) => __awaiter(void 0, void 0, void 0, function*
     });
 });
 const goodBye = () => {
-    console.log('');
     console.log(blue('Goodbye!'));
     process.exit(0);
 };
@@ -92,7 +91,7 @@ const main = () => __awaiter(void 0, void 0, void 0, function* () {
     const command = getCommandByIndex(commands, choice);
     // await copyToClipboard(command)
     let operation = '';
-    if (command.index) {
+    if (command.index && command.command) {
         // operation = await explainCommand(command)
         exec(command.command, function (err, stdout, stderr) {
             if (err)
