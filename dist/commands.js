@@ -26,21 +26,38 @@ export const getCommands = (type, input) => __awaiter(void 0, void 0, void 0, fu
     return response.content;
 });
 export const getCommandByIndex = (commands, choice) => {
+    const types = {
+        'x': 'eXplain',
+        't': 'reTry',
+        'e': 'Edit',
+        'r': 'Run',
+        's': 'Save',
+        'q': 'Quit'
+    };
     // If choice is numeric, return commands[+choice - 1]
-    // If choice is a letter, return that letter
-    if (!isNaN(parseInt(choice))) {
-        return {
-            command: 'execute',
-            explanation: null,
-            index: parseInt(choice)
-        };
+    const numChoice = parseInt(choice);
+    if (!isNaN(numChoice)) {
+        if (numChoice <= commands.length) {
+            return {
+                type: 'execute',
+                abbrev: 'x',
+                command: commands[parseInt(choice) - 1].command,
+                explanation: commands[parseInt(choice) - 1].explanation,
+                index: parseInt(choice)
+            };
+        }
+        else {
+            console.log('Invalid choice [' + choice + ']!');
+            process.exit(1);
+        }
     }
-    const index = parseInt(choice);
-    if (index > commands.length) {
-        console.log('Invalid choice');
-        process.exit(1);
-    }
-    return commands[index - 1];
+    return {
+        type: types[choice],
+        abbrev: choice,
+        command: commands[parseInt(choice) - 1].command,
+        explanation: commands[parseInt(choice) - 1].explanation,
+        index: 0
+    };
 };
 export const showCommands = (question) => __awaiter(void 0, void 0, void 0, function* () {
     let currOperation = 'run';
@@ -93,11 +110,11 @@ export const showCommands = (question) => __awaiter(void 0, void 0, void 0, func
             // make label yellow with any uppercase letters cyan
             return label.split('').map((x) => x === x.toUpperCase() ? cyan(x) : x).join('');
         };
-        const opts = ['eXplain', 'Run', 'Edit', 'Quit']
+        const opts = ['eXplain', 'Run', 'Save', 'Edit', 'reTry', 'Quit']
             .filter((x) => x.toLowerCase() !== currOperation)
             .map(makeOpt)
             .join('/');
-        process.stdout.write(yellow(`[${opts}] Command to ${blue(currOperation)} ${cyan('#')}: `));
+        process.stdout.write(yellow(`[${opts}] Command to ${cyan(currOperation.toUpperCase())} ${yellow('#')}: `));
     }
     return commands;
 });
