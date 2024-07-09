@@ -23,7 +23,7 @@
   "scripts": {
     "build": "tsc;npm install -g .",
     "watch": "tsc --watch",
-    "test": "tsc;node dist/index.js"
+    "aido": "tsc;node dist/index.js"
   },
   "devDependencies": {
     "@types/node": "^20.12.4",
