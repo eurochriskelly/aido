@@ -96,6 +96,11 @@ const main = async (): Promise<void> => {
   const choice = await readChar();
   console.log(choice); // echo choice so user sees that they typed
 
+  if (choice === '\u0003' || !choice.trim()) {
+    console.log(blue('exiting...'));
+    process.exit();
+  } 
+
   if (choice.toLowerCase() === 'q') goodBye();
   
   const command: Command = getCommandByIndex(commands, choice)

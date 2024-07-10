@@ -86,6 +86,10 @@ const main = () => __awaiter(void 0, void 0, void 0, function* () {
     // get the user to provide a single char and then proceed. Do not wait for confirmation
     const choice = yield readChar();
     console.log(choice); // echo choice so user sees that they typed
+    if (choice === '\u0003' || !choice.trim()) {
+        console.log(blue('exiting...'));
+        process.exit();
+    }
     if (choice.toLowerCase() === 'q')
         goodBye();
     const command = getCommandByIndex(commands, choice);
