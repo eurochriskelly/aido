@@ -7,6 +7,8 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+import { writeFileSync } from 'fs';
+import * as path from 'path';
 import { ChatOpenAI } from "@langchain/openai";
 import { ChatPromptTemplate } from "@langchain/core/prompts";
 import { systemPromptSuggest, systemPromptExplain, userPrompt } from "./prompts.js";
@@ -123,3 +125,24 @@ export const showCommands = (question) => __awaiter(void 0, void 0, void 0, func
     }
     return commands;
 });
+export const createShellHistoryScript = (command) => {
+    const shell = process.env.SHELL || '';
+    const escapedCommand = command.replace(/"/g, '\\"');
+    let scriptContent = '';
+    if (shell.includes('zsh')) {
+        scriptContent = [
+            '#!/bin/bash',
+            `fc -R`,
+            `print -s "${escapedCommand}"`
+        ].join('\n');
+    }
+    else if (shell.includes('bash')) {
+        scriptContent = `history -s "${escapedCommand}" && history -a`;
+    }
+    else {
+        throw new Error(`Unsupported shell: ${shell}`);
+    }
+    const tmpFilePath = path.join('/tmp', 'aido-next.sh');
+    writeFileSync(tmpFilePath, scriptContent);
+    return tmpFilePath;
+};

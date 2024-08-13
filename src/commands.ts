@@ -1,3 +1,8 @@
+import { execSync } from 'child_process';
+import { writeFileSync } from 'fs';
+import * as os from 'os';
+import * as path from 'path';
+
 import { ChatOpenAI } from "@langchain/openai";
 import { ChatPromptTemplate } from "@langchain/core/prompts";
 import { systemPromptSuggest, systemPromptExplain, userPrompt } from "./prompts.js";
@@ -125,4 +130,25 @@ export const showCommands = async (question: string): Promise<Command[]> => {
   return commands 
 }
 
+export const createShellHistoryScript = (command: string): string => {
+  const shell = process.env.SHELL || '';
+  const escapedCommand = command.replace(/"/g, '\\"');
+  let scriptContent = '';
 
+  if (shell.includes('zsh')) {
+    scriptContent = [
+      '#!/bin/bash',
+      `fc -R`,
+      `print -s "${escapedCommand}"`
+    ].join('\n');
+  } else if (shell.includes('bash')) {
+    scriptContent = `history -s "${escapedCommand}" && history -a`;
+  } else {
+    throw new Error(`Unsupported shell: ${shell}`);
+  }
+
+  const tmpFilePath = path.join('/tmp', 'aido-next.sh');
+  writeFileSync(tmpFilePath, scriptContent);
+
+  return tmpFilePath;
+};

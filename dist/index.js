@@ -11,7 +11,7 @@ import { platform } from "os";
 import chalk from "chalk";
 import { exec } from "child_process";
 import { readChar } from "./utils.js";
-import { getCommands, getCommandByIndex, showCommands } from "./commands.js";
+import { getCommands, getCommandByIndex, showCommands, createShellHistoryScript } from "./commands.js";
 const { yellow, cyan, red, blue } = chalk;
 const ARGS = {
     origQuestion: '',
@@ -97,13 +97,9 @@ const main = () => __awaiter(void 0, void 0, void 0, function* () {
     let operation = '';
     if (command.index && command.command) {
         // operation = await explainCommand(command)
-        exec(command.command, function (err, stdout, stderr) {
-            if (err)
-                console.error(err);
-            console.log(stdout);
-            console.error(stderr);
-            process.exit(0);
-        });
+        createShellHistoryScript(command.command);
+        console.log('Press up arrow to run!');
+        process.exit(0);
     }
     else {
         switch (operation.toLowerCase()) {
