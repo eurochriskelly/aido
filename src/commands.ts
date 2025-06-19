@@ -34,46 +34,14 @@ export const getCommands = async (type: string, input: string): Promise<string> 
   return response.content
 }
 
-export const getCommandByIndex = (commands: Command[], choice: string): Command => {
-  const types: any = {
-    'x': 'eXplain',
-    't': 'reTry',
-    'e': 'Edit',
-    'r': 'Run',
-    's': 'Save',
-    'q': 'Quit'
-  }
-  // If choice is numeric, return commands[+choice - 1]
+export const getCommandByIndex = (commands: Command[], choice: string): Command | undefined => {
   const numChoice = parseInt(choice);
-  if (!isNaN(numChoice) ) {
-    if (numChoice <= commands.length) {
-      return {
-        type: 'execute',
-        abbrev: 'x',
-        command: commands[parseInt(choice) - 1].command,
-        explanation: commands[parseInt(choice) - 1].explanation,
-        index: parseInt(choice),
-        annotation: 'loop 1'
-      };
-    } else {
-      console.log('Invalid choice [' + choice + ']!');
-      process.exit(1)
-    }
+  if (!isNaN(numChoice) && numChoice > 0 && numChoice <= commands.length) {
+    const command = commands[numChoice - 1];
+    command.index = numChoice;
+    return command;
   }
-
-  if (types[choice]) {
-    return {
-      type: types[choice],
-      abbrev: choice,
-      command: null,
-      explanation: null,
-      index: 0,
-      annotation: 'letter choice'
-    };
-  } else {
-    console.log(red('Invalid choice [' + choice + ']!'));
-    process.exit(1);
-  }
+  return undefined;
 }
 
 export const showCommands = async (question: string): Promise<Command[]> => {
@@ -122,31 +90,7 @@ export const showCommands = async (question: string): Promise<Command[]> => {
     process.exit(1)
   } else {
     console.log('');
-    const makeOpt = (label: string) => {
-      // make label yellow with any uppercase letters cyan
-      return label.split('').map((x: string) => x === x.toUpperCase() ? cyan(x) : x).join('')
-    } 
-    const opts = ['eXplain', 'Run', 'Save', 'Edit','reTry', 'Quit']
-      .filter((x: string) => x.toLowerCase() !== currOperation)
-      .map(makeOpt)
-      .join('/')
-    process.stdout.write(yellow(`Enter ${cyan('command #')} to ${cyan(currOperation.toUpperCase())} or [${opts}]: `));
+    process.stdout.write(yellow(`Enter ${cyan('command #')} to select, or [${cyan('Q')}]uit: `));
   }
   return commands 
 }
-
-export const createShellHistoryScript = (command: string): string => {
-  const escapedCommand = command.replace(/"/g, '\\"');
-
-  // The aido.sh script is executed with bash, so the commands it evals must be bash-compatible.
-  // `history -s` adds the command to the bash process's in-memory history.
-  // `history -a` appends that new history item to the $HISTFILE.
-  // This makes the command available in the next shell session.
-  // The original zsh-specific commands (`fc -R`, `print -s`) failed because they were run by bash.
-  const scriptContent = `history -s "${escapedCommand}" && history -a`;
-
-  const tmpFilePath = path.join('/tmp', 'aido-next.sh');
-  writeFileSync(tmpFilePath, scriptContent);
-
-  return tmpFilePath;
-};

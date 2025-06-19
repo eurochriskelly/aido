@@ -1,11 +1,11 @@
 import { platform } from "os";
 import chalk from "chalk";
-import { exec } from "child_process";
+import { exec, spawn } from "child_process";
 import { readFileSync } from "fs";
 import { fileURLToPath } from 'url';
 import path from 'path';
 import { readChar } from "./utils.js";
-import { Command, getCommands, getCommandByIndex, showCommands, createShellHistoryScript} from "./commands.js";
+import { Command, getCommands, getCommandByIndex, showCommands } from "./commands.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -81,20 +81,23 @@ const explainCommand = async (command: Command): Promise<string> => {
   return 'x'
 }
 
-const copyToClipboard = async (command: string): Promise<void> => {
-  const sysCopyProg = platform() === 'darwin' ? 'pbcopy' : (platform() === 'linux' ? 'xclip -selection clipboard' : undefined);
-  if (!sysCopyProg) {
-    console.error(red('Clipboard utility not available on this platform.'));
-    process.exit(1);
-  }
-  const commandToClipboard = `echo "${command.replace(/"/g, '\\"')}" | ${sysCopyProg}`;
-  console.log(commandToClipboard)
-  exec(commandToClipboard, async function (err: any, stdout: any, stderr: any) {
-    console.log('copying to clipboard ...')
-    if (err) {
-      console.error(err)
+const copyToClipboard = (command: string): Promise<void> => {
+  return new Promise((resolve, reject) => {
+    const sysCopyProg = platform() === 'darwin' ? 'pbcopy' : (platform() === 'linux' ? 'xclip -selection clipboard' : undefined);
+    if (!sysCopyProg) {
+      console.error(red('Clipboard utility not available on this platform.'));
+      return reject(new Error('Clipboard utility not available on this platform.'));
     }
-    console.log(blue("Copied to clipboard!"));
+    const commandToClipboard = `echo "${command.replace(/"/g, '\\"')}" | ${sysCopyProg}`;
+    console.log('copying to clipboard ...')
+    exec(commandToClipboard, (err, stdout, stderr) => {
+      if (err) {
+        console.error(err)
+        return reject(err);
+      }
+      console.log(blue("Copied to clipboard!"));
+      resolve();
+    });
   });
 }
 
@@ -115,50 +118,57 @@ const main = async (): Promise<void> => {
   const choice = await readChar();
   console.log(choice); // echo choice so user sees that they typed
 
-  if (choice === '\u0003' || !choice.trim()) {
-    console.log(blue('exiting...'));
-    process.exit();
+  if (choice.toLowerCase() === 'q' || choice === '\u0003' || !choice.trim()) {
+    goodBye();
   } 
 
-  if (choice.toLowerCase() === 'q') goodBye();
+  const command: Command | undefined = getCommandByIndex(commands, choice)
+
+  if (!command || !command.command) {
+    console.log(red('Invalid command selection.'));
+    process.exit(1);
+  }
+
+  // Now, ask for the action
+  console.log('');
+  const makeOpt = (label: string) => label.split('').map((x: string) => x === x.toUpperCase() ? cyan(x) : x).join('');
+  const opts = ['Run', 'Explain', 'Copy', 'Quit'].map(makeOpt).join('/');
+  process.stdout.write(yellow(`Action for command ${cyan(command.index)}: [${opts}]: `));
   
-  const command: Command = getCommandByIndex(commands, choice)
+  const actionChoice = await readChar();
+  console.log(actionChoice); // echo choice
 
-  // await copyToClipboard(command)
-  let operation = ''
-  if (command.index && command.command) {
-    // operation = await explainCommand(command)
-    createShellHistoryScript(command.command);
-    console.log('Press up arrow to run!')
-    process.exit(0)
+  switch (actionChoice.toLowerCase()) {
+    case 'r':
+      console.log(blue(`Running: ${command.command}`));
+      const child = spawn(command.command, [], {
+        shell: true,
+        stdio: 'inherit'
+      });
 
-  } else {
-    switch (operation.toLowerCase()) {
-      case 'r':
-        {
-          console.log(blue('Running command ...'))
-        }
-        break;
-      case 'x': // Explain
-        {
-          // todo: wait until command is ready
-          explainCommand(command);
-        }
-        break
-      case 'e':
-        {
-          console.log('Editing not yet supported')
-          process.exit(0)
-        }
-        break
-      case 'q':
-        goodBye()
-        break
+      child.on('error', (err) => {
+        console.error(red('Failed to start subprocess.'), err);
+      });
 
-      default:
-        console.log('Invalid choice. ', operation.toLowerCase());
-        break;
-    }
+      child.on('close', (code) => {
+        process.exit(code ?? 0);
+      });
+      break;
+    case 'e':
+      await explainCommand(command);
+      goodBye();
+      break;
+    case 'c':
+      await copyToClipboard(command.command);
+      goodBye();
+      break;
+    case 'q':
+      goodBye();
+      break;
+    default:
+      console.log(red('Invalid action.'));
+      goodBye();
+      break;
   }
 };
 
