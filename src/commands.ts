@@ -21,9 +21,19 @@ export interface Command {
 
 
 export const getCommands = async (type: string, input: string): Promise<string> => {
+  if (!process.env.DEEPSEEK_API_KEY) {
+    console.error(red('DEEPSEEK_API_KEY environment variable not set.'));
+    process.exit(1);
+  }
+
   const chatModel = new ChatOpenAI({
-    // openAIApiKey: process.env.OPENAI_API_KEY as string, // Cast to string; TypeScript won't automatically infer process.env types.
+    modelName: "deepseek-coder",
+    openAIApiKey: process.env.DEEPSEEK_API_KEY,
+    configuration: {
+      baseURL: "https://api.deepseek.com/v1",
+    },
   });
+
   const prompt = ChatPromptTemplate.fromMessages([
     ['system', type === 'suggest' ? systemPromptSuggest : systemPromptExplain],
     ['user', userPrompt],
