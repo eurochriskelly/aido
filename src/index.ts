@@ -171,6 +171,7 @@ const main = async (): Promise<void> => {
 
   switch (actionChoice.toLowerCase()) {
     case 'r':
+    case '\r':
       console.log(blue(`Running: ${command.command}`));
       const child = spawn(command.command, [], {
         shell: true,
