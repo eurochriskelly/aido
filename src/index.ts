@@ -1,9 +1,10 @@
-import { platform } from "os";
+import { platform, homedir } from "os";
 import chalk from "chalk";
 import { exec, spawn } from "child_process";
-import { readFileSync } from "fs";
+import { readFileSync, appendFileSync, existsSync } from "fs";
 import { fileURLToPath } from 'url';
 import path from 'path';
+import * as readline from 'readline';
 import { readChar } from "./utils.js";
 import { Command, getCommands, getCommandByIndex, showCommands } from "./commands.js";
 
@@ -36,25 +37,55 @@ const ARGS: AllowedArguments = {
 }
 
 const processArgs = async () => {
-  // Read all files in the chapter directory
-  const myos = process.platform
-  let origQuestion = process.argv.slice(2).join(' ')
+  const myos = process.platform;
+  let origQuestion = process.argv.slice(2).join(' ');
+
   if (!origQuestion.trim()) {
-    // Ask the user what they want
-    process.stdout.write(yellow('How may I assist ? '));
+    const historyPath = path.join(homedir(), '.aido_history');
+    const history = existsSync(historyPath)
+      ? readFileSync(historyPath, 'utf-8').split('\n').filter(line => line.trim())
+      : [];
+
+    const rl = readline.createInterface({
+      input: process.stdin,
+      output: process.stdout,
+      history: history,
+      prompt: yellow('How may I assist ? ')
+    });
+
     origQuestion = await new Promise<string>(resolve => {
-      process.stdin.resume();
-      process.stdin.once('data', data =>
-        resolve(data.toString().trim())
-      );
-    })
+      rl.on('line', (line) => {
+        const trimmedLine = line.trim();
+        if (trimmedLine) {
+          // Add to history only if it's not a duplicate of the last command
+          if (history.length === 0 || history[history.length - 1] !== trimmedLine) {
+            appendFileSync(historyPath, trimmedLine + '\n');
+          }
+        }
+        rl.close();
+        resolve(trimmedLine);
+      });
+
+      // Handle Ctrl+C to exit gracefully
+      rl.on('SIGINT', () => {
+        rl.close();
+        goodBye();
+      });
+
+      rl.prompt();
+    });
   }
+
+  if (!origQuestion.trim()) {
+    goodBye();
+  }
+
   ARGS.origQuestion = origQuestion;
   ARGS.question = [
     `Hello Jeff. My operating system is ${myos}. `,
     `The time is ${new Date()}. `,
     `And my question is: ${origQuestion}`,
-  ].join('')
+  ].join('');
 }
 
 
