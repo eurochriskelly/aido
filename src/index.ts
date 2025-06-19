@@ -1,10 +1,23 @@
 import { platform } from "os";
 import chalk from "chalk";
 import { exec } from "child_process";
+import { readFileSync } from "fs";
 import { readChar } from "./utils.js";
 import { Command, getCommands, getCommandByIndex, showCommands, createShellHistoryScript} from "./commands.js";
 
 const { yellow, cyan, red, blue } = chalk
+
+// Handle version flag
+if (process.argv.includes('--version') || process.argv.includes('-v')) {
+  try {
+    const versionData = JSON.parse(readFileSync('./version.json', 'utf-8'));
+    console.log(versionData.version);
+    process.exit(0);
+  } catch (e) {
+    console.log(red('Error reading version'));
+    process.exit(1);
+  }
+}
 
 interface AllowedArguments {
   origQuestion: string
