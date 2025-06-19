@@ -61,14 +61,19 @@ export const getCommandByIndex = (commands: Command[], choice: string): Command 
     }
   }
 
-  return {
-    type: types[choice],
-    abbrev: choice,
-    command: commands[parseInt(choice) - 1].command,
-    explanation: commands[parseInt(choice) - 1].explanation,
-    index: 0,
-    annotation: 'loop 2'
-  };
+  if (types[choice]) {
+    return {
+      type: types[choice],
+      abbrev: choice,
+      command: null,
+      explanation: null,
+      index: 0,
+      annotation: 'letter choice'
+    };
+  } else {
+    console.log(red('Invalid choice [' + choice + ']!'));
+    process.exit(1);
+  }
 }
 
 export const showCommands = async (question: string): Promise<Command[]> => {
