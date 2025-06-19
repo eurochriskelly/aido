@@ -136,21 +136,14 @@ export const showCommands = async (question: string): Promise<Command[]> => {
 }
 
 export const createShellHistoryScript = (command: string): string => {
-  const shell = process.env.SHELL || '';
   const escapedCommand = command.replace(/"/g, '\\"');
-  let scriptContent = '';
 
-  if (shell.includes('zsh')) {
-    scriptContent = [
-      '#!/bin/bash',
-      `fc -R`,
-      `print -s "${escapedCommand}"`
-    ].join('\n');
-  } else if (shell.includes('bash')) {
-    scriptContent = `history -s "${escapedCommand}" && history -a`;
-  } else {
-    throw new Error(`Unsupported shell: ${shell}`);
-  }
+  // The aido.sh script is executed with bash, so the commands it evals must be bash-compatible.
+  // `history -s` adds the command to the bash process's in-memory history.
+  // `history -a` appends that new history item to the $HISTFILE.
+  // This makes the command available in the next shell session.
+  // The original zsh-specific commands (`fc -R`, `print -s`) failed because they were run by bash.
+  const scriptContent = `history -s "${escapedCommand}" && history -a`;
 
   const tmpFilePath = path.join('/tmp', 'aido-next.sh');
   writeFileSync(tmpFilePath, scriptContent);
