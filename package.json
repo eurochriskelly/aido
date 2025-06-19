@@ -21,9 +21,9 @@
     }
   },
   "scripts": {
-    "build": "tsc;npm install -g .",
+    "build": "tsc; node -e \"const fs=require('fs');fs.writeFileSync('dist/version.json',JSON.stringify({version:require('./package.json').version}))\"",
     "watch": "tsc --watch",
-    "test": "tsc;node dist/index.js"
+    "aido": "tsc;node dist/index.js"
   },
   "devDependencies": {
     "@types/node": "^20.12.4",

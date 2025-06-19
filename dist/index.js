@@ -8,10 +8,10 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 import { platform } from "os";
-import * as readline from 'readline';
 import chalk from "chalk";
 import { exec } from "child_process";
-import { getCommands, getCommandByIndex, showCommands } from "./commands.js";
+import { readChar } from "./utils.js";
+import { getCommands, getCommandByIndex, showCommands, createShellHistoryScript } from "./commands.js";
 const { yellow, cyan, red, blue } = chalk;
 const ARGS = {
     origQuestion: '',
@@ -23,7 +23,7 @@ const processArgs = () => __awaiter(void 0, void 0, void 0, function* () {
     let origQuestion = process.argv.slice(2).join(' ');
     if (!origQuestion.trim()) {
         // Ask the user what they want
-        process.stdout.write(yellow('What can I do for you ? '));
+        process.stdout.write(yellow('How may I assist ? '));
         origQuestion = yield new Promise(resolve => {
             process.stdin.resume();
             process.stdin.once('data', data => resolve(data.toString().trim()));
@@ -36,27 +36,6 @@ const processArgs = () => __awaiter(void 0, void 0, void 0, function* () {
         `And my question is: ${origQuestion}`,
     ].join('');
 });
-const readChar = () => {
-    return new Promise((resolve, reject) => {
-        readline.emitKeypressEvents(process.stdin);
-        if (process.stdin.isTTY) {
-            process.stdin.setRawMode(true);
-        }
-        const handler = (chunk, key) => {
-            if (process.stdin.isTTY) {
-                process.stdin.setRawMode(false);
-            }
-            process.stdin.pause();
-            process.stdin.removeListener('keypress', handler); // Clean up the listener
-            resolve(key.sequence);
-        };
-        process.stdin.on('keypress', handler);
-        process.stdin.on('error', (err) => {
-            reject(err);
-        });
-        process.stdin.resume(); // Ensure stdin is in a listening state
-    });
-};
 const explainCommand = (command) => __awaiter(void 0, void 0, void 0, function* () {
     console.log('');
     console.log(blue('Selected command:'));
@@ -95,7 +74,6 @@ const copyToClipboard = (command) => __awaiter(void 0, void 0, void 0, function*
     });
 });
 const goodBye = () => {
-    console.log('');
     console.log(blue('Goodbye!'));
     process.exit(0);
 };
@@ -107,20 +85,21 @@ const main = () => __awaiter(void 0, void 0, void 0, function* () {
     const commands = yield showCommands(ARGS.question);
     // get the user to provide a single char and then proceed. Do not wait for confirmation
     const choice = yield readChar();
+    console.log(choice); // echo choice so user sees that they typed
+    if (choice === '\u0003' || !choice.trim()) {
+        console.log(blue('exiting...'));
+        process.exit();
+    }
     if (choice.toLowerCase() === 'q')
         goodBye();
     const command = getCommandByIndex(commands, choice);
     // await copyToClipboard(command)
     let operation = '';
-    if (command.index) {
+    if (command.index && command.command) {
         // operation = await explainCommand(command)
-        exec(command.command, function (err, stdout, stderr) {
-            if (err)
-                console.error(err);
-            console.log(stdout);
-            console.error(stderr);
-            process.exit(0);
-        });
+        createShellHistoryScript(command.command);
+        console.log('Press up arrow to run!');
+        process.exit(0);
     }
     else {
         switch (operation.toLowerCase()) {

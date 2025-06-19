@@ -1,3 +1,8 @@
+import { execSync } from 'child_process';
+import { writeFileSync } from 'fs';
+import * as os from 'os';
+import * as path from 'path';
+
 import { ChatOpenAI } from "@langchain/openai";
 import { ChatPromptTemplate } from "@langchain/core/prompts";
 import { systemPromptSuggest, systemPromptExplain, userPrompt } from "./prompts.js";
@@ -5,16 +10,30 @@ import chalk from "chalk";
 const { yellow, cyan, red, blue } = chalk
 
 export interface Command {
-  command: string
-  explanation: string | null 
-  index?: number
+  // enum: ['execute', 'edit', 'quit']
+  type: string
+  abbrev: string
+  command: string | null
+  explanation: string | null
+  index?: number,
+  annotation?: string
 }
 
 
 export const getCommands = async (type: string, input: string): Promise<string> => {
+  if (!process.env.DEEPSEEK_API_KEY) {
+    console.error(red('DEEPSEEK_API_KEY environment variable not set.'));
+    process.exit(1);
+  }
+
   const chatModel = new ChatOpenAI({
-    // openAIApiKey: process.env.OPENAI_API_KEY as string, // Cast to string; TypeScript won't automatically infer process.env types.
+    modelName: "deepseek-coder",
+    openAIApiKey: process.env.DEEPSEEK_API_KEY,
+    configuration: {
+      baseURL: "https://api.deepseek.com/v1",
+    },
   });
+
   const prompt = ChatPromptTemplate.fromMessages([
     ['system', type === 'suggest' ? systemPromptSuggest : systemPromptExplain],
     ['user', userPrompt],
@@ -25,25 +44,15 @@ export const getCommands = async (type: string, input: string): Promise<string> 
   return response.content
 }
 
-
-export const getCommandByIndex = (commands: Command[], choice: string): Command => {
-  // If choice is numeric, return commands[+choice - 1]
-  // If choice is a letter, return that letter
-  if (!isNaN(parseInt(choice))) {
-    return {
-      command: 'execute',
-      explanation: null,
-      index: parseInt(choice)
-    };
+export const getCommandByIndex = (commands: Command[], choice: string): Command | undefined => {
+  const numChoice = parseInt(choice);
+  if (!isNaN(numChoice) && numChoice > 0 && numChoice <= commands.length) {
+    const command = commands[numChoice - 1];
+    command.index = numChoice;
+    return command;
   }
-  const index = parseInt(choice)
-  if (index > commands.length) {
-    console.log('Invalid choice')
-    process.exit(1)
-  }
-  return commands[index - 1]
+  return undefined;
 }
-
 
 export const showCommands = async (question: string): Promise<Command[]> => {
   let currOperation = 'run'
@@ -53,8 +62,10 @@ export const showCommands = async (question: string): Promise<Command[]> => {
   console.log(blue(`[${(t2 - t1) / 1000} s]`));
   // get the user to enter a question from the terminal
   const commands: Command[] = response.split('===').map(x => x.trim()).filter(x => x).map(c => ({
+    type: 'execute',
+    abbrev: '',
     command: c,
-    explanation: null
+    explanation: null,
   }))
   // Go off and get the explanations for the commands
   Promise.all(commands.map(async command => {
@@ -70,7 +81,7 @@ export const showCommands = async (question: string): Promise<Command[]> => {
   }))
   console.log(yellow('Proposed solutions:'))
   commands.forEach((command, i) => {
-    const cmd = command.command.split('\n').filter(x => x.trim())
+    const cmd = command.command?.split('\n').filter(x => x.trim()) || []
     if (cmd.length > 1) {
       console.log(`  ${cyan(`${i + 1}:`)}`)
       cmd.forEach((line, i) => {
@@ -88,16 +99,8 @@ export const showCommands = async (question: string): Promise<Command[]> => {
     console.log('No suggestion?! ')
     process.exit(1)
   } else {
-    console.log('')
-    const makeOpt = (label: string) => {
-      // make label yellow with any uppercase letters cyan
-      return label.split('').map((x: string) => x === x.toUpperCase() ? cyan(x) : x).join('')
-    } 
-    const opts = ['eXplain', 'Run', 'Edit', 'Quit']
-      .filter((x: string) => x.toLowerCase() !== currOperation)
-      .map(makeOpt)
-      .join('/')
-    process.stdout.write(yellow(`[${opts}] Command to ${blue(currOperation)} ${cyan('#')}: `));
+    console.log('');
+    process.stdout.write(yellow(`Enter ${cyan('command #')} to select, or [${cyan('Q')}]uit: `));
   }
   return commands 
 }
